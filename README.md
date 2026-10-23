@@ -1,4 +1,4 @@
-# VenueHub
+# VenueFlow
 
 VenueFlow is a full-stack web application that lets users collaboratively plan and manage events. It combines planning, financial tracking, venue design, and team collaboration in one centralized app.
 
