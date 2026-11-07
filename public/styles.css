@@ -1,0 +1,12 @@
+/* Basic page styles. Add component-specific styles as the interface grows. */
+
+body {
+  margin: 0;
+  color: #24222d;
+  background: #ffffff;
+  font-family: Arial, sans-serif;
+}
+
+p {
+  margin: 1rem;
+}
