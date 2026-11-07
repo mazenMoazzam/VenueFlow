@@ -1,4 +1,3 @@
-/* Basic page styles. Add component-specific styles as the interface grows. */
 
 :root {
   --color-bg: #f5f4ef;
@@ -22,7 +21,6 @@ body {
   font-size: 14px;
 }
 
-/* Top bar */
 
 .topbar {
   display: flex;
@@ -42,7 +40,6 @@ body {
   color: var(--color-accent);
 }
 
-/* Page layout */
 
 .page {
   padding: 24px;
@@ -77,6 +74,59 @@ body {
 .panel-empty {
   margin: 0;
   color: var(--color-muted);
+}
+
+/* Calendar */
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.calendar-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.calendar-weekday {
+  padding: 8px;
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.calendar-day {
+  min-height: 96px;
+  padding: 8px;
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.calendar-day:nth-child(7n) {
+  border-right: none;
+}
+
+.calendar-day.is-weekend {
+  background: #faf9f6;
+}
+
+.calendar-day.is-outside .calendar-day-number {
+  color: #c4c1b8;
+}
+
+.calendar-day-number {
+  font-size: 12px;
 }
 
 @media (max-width: 1000px) {
