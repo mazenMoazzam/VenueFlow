@@ -71,8 +71,6 @@ export function createCalendar(container) {
 
   container.replaceChildren(header, weekdayRow, grid);
 
-  // Moves the view forward or back by a number of months. The Date constructor
-  // handles rolling over into the next or previous year.
   function changeMonth(offset) {
     const target = new Date(viewYear, viewMonth + offset, 1);
     viewYear = target.getFullYear();
