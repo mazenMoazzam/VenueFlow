@@ -1,12 +1,86 @@
 /* Basic page styles. Add component-specific styles as the interface grows. */
 
-body {
-  margin: 0;
-  color: #24222d;
-  background: #ffffff;
-  font-family: Arial, sans-serif;
+:root {
+  --color-bg: #f5f4ef;
+  --color-surface: #ffffff;
+  --color-border: #e4e2da;
+  --color-text: #24222d;
+  --color-muted: #8a8780;
+  --color-accent: #2f5d46;
+  --radius: 10px;
 }
 
-p {
-  margin: 1rem;
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+}
+
+/* Top bar */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  padding: 0 24px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.brand {
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.brand-mark {
+  color: var(--color-accent);
+}
+
+/* Page layout */
+
+.page {
+  padding: 24px;
+}
+
+.page-header h1 {
+  margin: 0 0 20px;
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.planner-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr 300px;
+  gap: 16px;
+  align-items: start;
+}
+
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.panel-title {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.panel-empty {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+@media (max-width: 1000px) {
+  .planner-layout {
+    grid-template-columns: 1fr;
+  }
 }
