@@ -1,0 +1,15 @@
+{
+  "name": "venueflow",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A collaborative event planning tool.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "check": "node --check server.js && node --check routes/empty.js && node --check db/index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
