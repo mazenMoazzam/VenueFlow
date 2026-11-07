@@ -91,6 +91,28 @@ body {
   font-weight: 600;
 }
 
+.calendar-nav-button {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.calendar-nav-button:hover {
+  background: var(--color-bg);
+}
+
+.calendar-today-button {
+  font-size: 13px;
+}
+
 .calendar-weekdays,
 .calendar-grid {
   display: grid;
@@ -126,7 +148,19 @@ body {
 }
 
 .calendar-day-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
   font-size: 12px;
+}
+
+.calendar-day.is-today .calendar-day-number {
+  color: #ffffff;
+  background: var(--color-accent);
+  border-radius: 50%;
+  font-weight: 600;
 }
 
 @media (max-width: 1000px) {

@@ -1,10 +1,6 @@
-// Month-view calendar built with plain DOM APIs.
-// Weeks start on Monday to match the Figma design.
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-// Formats a Date as "YYYY-MM-DD" using local time, so each day cell can be
-// matched to events by date later without timezone shifts.
 function toDateKey(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -12,14 +8,10 @@ function toDateKey(date) {
   return `${year}-${month}-${day}`;
 }
 
-// Returns every date shown in the month grid, including the trailing days of
-// the previous month and the leading days of the next month that fill out the
-// first and last weeks.
 function getMonthGridDates(year, month) {
   const firstOfMonth = new Date(year, month, 1);
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-  // getDay() is 0 for Sunday; shift so Monday is 0.
   const leadingDays = (firstOfMonth.getDay() + 6) % 7;
   const weekCount = Math.ceil((leadingDays + daysInMonth) / 7);
 
@@ -30,17 +22,40 @@ function getMonthGridDates(year, month) {
   return dates;
 }
 
+function createNavButton(label, ariaLabel) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "calendar-nav-button";
+  button.textContent = label;
+  button.setAttribute("aria-label", ariaLabel);
+  return button;
+}
+
 export function createCalendar(container) {
   const today = new Date();
-  const viewYear = today.getFullYear();
-  const viewMonth = today.getMonth();
+  let viewYear = today.getFullYear();
+  let viewMonth = today.getMonth();
 
   const title = document.createElement("h2");
   title.className = "calendar-title";
 
   const header = document.createElement("div");
   header.className = "calendar-header";
-  header.append(title);
+  const prevButton = createNavButton("‹", "Previous month");
+  const nextButton = createNavButton("›", "Next month");
+  const todayButton = createNavButton("Today", "Go to today");
+  todayButton.classList.add("calendar-today-button");
+
+  prevButton.addEventListener("click", () => changeMonth(-1));
+  nextButton.addEventListener("click", () => changeMonth(1));
+  todayButton.addEventListener("click", () => {
+    const now = new Date();
+    viewYear = now.getFullYear();
+    viewMonth = now.getMonth();
+    render();
+  });
+
+  header.append(title, prevButton, nextButton, todayButton);
 
   const weekdayRow = document.createElement("div");
   weekdayRow.className = "calendar-weekdays";
@@ -56,7 +71,18 @@ export function createCalendar(container) {
 
   container.replaceChildren(header, weekdayRow, grid);
 
+  // Moves the view forward or back by a number of months. The Date constructor
+  // handles rolling over into the next or previous year.
+  function changeMonth(offset) {
+    const target = new Date(viewYear, viewMonth + offset, 1);
+    viewYear = target.getFullYear();
+    viewMonth = target.getMonth();
+    render();
+  }
+
   function render() {
+    const todayKey = toDateKey(new Date());
+
     title.textContent = new Date(viewYear, viewMonth, 1).toLocaleDateString("en-US", {
       month: "long",
       year: "numeric"
@@ -74,6 +100,10 @@ export function createCalendar(container) {
       const dayOfWeek = date.getDay();
       if (dayOfWeek === 0 || dayOfWeek === 6) {
         cell.classList.add("is-weekend");
+      }
+
+      if (cell.dataset.date === todayKey) {
+        cell.classList.add("is-today");
       }
 
       const number = document.createElement("span");
