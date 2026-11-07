@@ -78,15 +78,21 @@ body {
 
 /* Calendar */
 
+#calendar-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
 .calendar-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .calendar-title {
-  margin: 0;
+  margin: 0 8px 0 0;
   font-size: 18px;
   font-weight: 600;
 }
@@ -96,11 +102,11 @@ body {
   height: 28px;
   padding: 0 8px;
   color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: 6px;
   font: inherit;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1;
   cursor: pointer;
 }
@@ -110,6 +116,9 @@ body {
 }
 
 .calendar-today-button {
+  margin-left: 4px;
+  background: var(--color-surface);
+  border-color: var(--color-border);
   font-size: 13px;
 }
 
@@ -120,7 +129,7 @@ body {
 }
 
 .calendar-weekday {
-  padding: 8px;
+  padding: 10px 12px;
   color: var(--color-muted);
   font-size: 11px;
   font-weight: 600;
@@ -137,6 +146,10 @@ body {
 
 .calendar-day:nth-child(7n) {
   border-right: none;
+}
+
+.calendar-day:nth-last-child(-n + 7) {
+  border-bottom: none;
 }
 
 .calendar-day.is-weekend {
