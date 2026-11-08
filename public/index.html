@@ -7,7 +7,32 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <p>hello bucko</p>
-    <script src="/app.js"></script>
+    <header class="topbar">
+      <span class="brand"><span class="brand-mark">✳</span> Venueflow</span>
+    </header>
+
+    <main class="page">
+      <div class="page-header">
+        <h1>Event planner</h1>
+      </div>
+
+      <div class="planner-layout">
+        <aside class="panel" id="events-panel">
+          <h2 class="panel-title">Events</h2>
+          <p class="panel-empty">No events yet.</p>
+        </aside>
+
+        <section class="panel" id="calendar-panel">
+          
+        </section>
+
+        <aside class="panel" id="tasks-panel">
+          <h2 class="panel-title">Tasks</h2>
+          <p class="panel-empty">No tasks yet.</p>
+        </aside>
+      </div>
+    </main>
+
+    <script type="module" src="/app.js"></script>
   </body>
 </html>

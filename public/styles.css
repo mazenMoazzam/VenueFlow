@@ -1,12 +1,185 @@
-/* Basic page styles. Add component-specific styles as the interface grows. */
+
+:root {
+  --color-bg: #f5f4ef;
+  --color-surface: #ffffff;
+  --color-border: #e4e2da;
+  --color-text: #24222d;
+  --color-muted: #8a8780;
+  --color-accent: #2f5d46;
+  --radius: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
-  color: #24222d;
-  background: #ffffff;
-  font-family: Arial, sans-serif;
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
 }
 
-p {
-  margin: 1rem;
+
+.topbar {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  padding: 0 24px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.brand {
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.brand-mark {
+  color: var(--color-accent);
+}
+
+
+.page {
+  padding: 24px;
+}
+
+.page-header h1 {
+  margin: 0 0 20px;
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.planner-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr 300px;
+  gap: 16px;
+  align-items: start;
+}
+
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.panel-title {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.panel-empty {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+/* Calendar */
+
+#calendar-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.calendar-title {
+  min-width: 9em;
+  margin: 0 8px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.calendar-nav-button {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.calendar-nav-button:hover {
+  background: var(--color-bg);
+}
+
+.calendar-today-button {
+  margin-left: 4px;
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  font-size: 13px;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.calendar-weekday {
+  padding: 10px 12px;
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.calendar-day {
+  min-height: 96px;
+  padding: 8px;
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.calendar-day:nth-child(7n) {
+  border-right: none;
+}
+
+.calendar-day:nth-last-child(-n + 7) {
+  border-bottom: none;
+}
+
+.calendar-day.is-weekend {
+  background: #faf9f6;
+}
+
+.calendar-day.is-outside .calendar-day-number {
+  color: #c4c1b8;
+}
+
+.calendar-day-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+}
+
+.calendar-day.is-today .calendar-day-number {
+  color: #ffffff;
+  background: var(--color-accent);
+  border-radius: 50%;
+  font-weight: 600;
+}
+
+@media (max-width: 1000px) {
+  .planner-layout {
+    grid-template-columns: 1fr;
+  }
 }
