@@ -2,31 +2,55 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>VenueFlow - Floorplan Starter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VenueFlow - Floor Plan</title>
+  <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="style.css">
   <!-- Fabric.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
 </head>
 <body>
 
-  <div class="layout">
-    <!-- Sidebar with draggable shapes -->
-    <div class="sidebar">
-      <div class="palette-item" draggable="true" data-type="rectangle">
-        ▭ Rectangle
-      </div>
-      <div class="palette-item" draggable="true" data-type="circle">
-        O Circle
-      </div>
+  <header class="topbar">
+    <span class="brand"><span class="brand-mark">✳</span> Venueflow</span>
+  </header>
+
+  <main class="page">
+    <div class="page-header">
+      <h1>Venue floor plan</h1>
     </div>
 
-    <!-- Canvas area -->
-    <div class="canvas-area">
-      <canvas id="c" width="800" height="600"></canvas>
+    <div class="floormap-layout">
+      <aside class="panel sidebar">
+        <h2 class="panel-title">Shapes</h2>
+        <div class="palette-grid">
+          <div class="palette-card" draggable="true" data-type="rectangle">
+            <div class="card-preview">
+              <svg width="34" height="24" viewBox="0 0 34 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="3" width="30" height="18" rx="3" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+              </svg>
+            </div>
+            <span class="card-name">Rectangle</span>
+          </div>
+          <div class="palette-card" draggable="true" data-type="circle">
+            <div class="card-preview">
+              <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="14" cy="14" r="11" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+              </svg>
+            </div>
+            <span class="card-name">Circle</span>
+          </div>
+        </div>
+      </aside>
+
+      <section class="panel canvas-panel">
+        <div class="canvas-wrapper">
+          <canvas id="c" width="800" height="600"></canvas>
+        </div>
+      </section>
     </div>
-  </div>
+  </main>
 
   <script src="script.js"></script>
 </body>
 </html>
-
