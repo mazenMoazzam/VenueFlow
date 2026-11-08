@@ -92,9 +92,11 @@ body {
 }
 
 .calendar-title {
+  min-width: 9em;
   margin: 0 8px 0 0;
   font-size: 18px;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .calendar-nav-button {
