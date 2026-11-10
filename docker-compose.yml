@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: venueflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: venueflow
+      POSTGRES_USER: venueflow
+      POSTGRES_PASSWORD: venueflow_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - venueflow-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  venueflow-postgres-data:
