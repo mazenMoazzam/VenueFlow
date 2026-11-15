@@ -47,6 +47,47 @@
           <canvas id="c" width="800" height="600"></canvas>
         </div>
       </section>
+
+      <aside class="panel properties-panel">
+        <h2 class="panel-title">Object properties</h2>
+        <div id="no-selection" class="empty-state">
+          <p>Select a shape on the canvas to view and edit its properties.</p>
+        </div>
+        <div id="selection-properties" class="properties-content" style="display: none;">
+          <div class="property-group">
+            <label class="property-label">Object name</label>
+            <div class="name-display">
+              <span id="prop-preview" class="name-preview"></span>
+              <input id="prop-name" type="text" class="name-input" readonly>
+            </div>
+          </div>
+
+          <div class="property-group">
+            <label class="property-label">Dimensions</label>
+            <div class="dimensions-grid">
+              <div class="dimension-field">
+                <span class="field-label">Width</span>
+                <div class="input-with-unit">
+                  <input id="prop-width" type="number" min="20" max="800" class="dimension-input">
+                </div>
+              </div>
+              <div class="dimension-field">
+                <span class="field-label">Length</span>
+                <div class="input-with-unit">
+                  <input id="prop-length" type="number" min="20" max="600" class="dimension-input">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="prop-radius-group" class="property-group">
+            <label class="property-label">Corner radius</label>
+            <div class="input-with-unit">
+              <input id="prop-radius" type="number" min="0" class="dimension-input">
+            </div>
+          </div>
+        </div>
+      </aside>
     </div>
   </main>
 
