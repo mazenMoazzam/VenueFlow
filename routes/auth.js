@@ -10,6 +10,20 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const UNIQUE_VIOLATION = "23505";
 
+// Logs a user in. A new session id is created first so an old (possibly
+// stolen) session id can't be reused after login.
+function startSession(req, userId) {
+  return new Promise((resolve, reject) => {
+    req.session.regenerate((regenerateError) => {
+      if (regenerateError) {
+        return reject(regenerateError);
+      }
+      req.session.userId = userId;
+      req.session.save((saveError) => (saveError ? reject(saveError) : resolve()));
+    });
+  });
+}
+
 router.post("/register", async (req, res) => {
   const { email, displayName, password } = req.body;
 
@@ -28,6 +42,7 @@ router.post("/register", async (req, res) => {
   try {
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
     const user = await createUser({ email, displayName, passwordHash });
+    await startSession(req, user.id);
     res.status(201).json({ user });
   } catch (error) {
     if (error.code === UNIQUE_VIOLATION) {
