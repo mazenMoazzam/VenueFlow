@@ -26,6 +26,18 @@
           <div><dt>Expected attendance</dt><dd id="event-attendance">—</dd></div>
           <div><dt>Status</dt><dd id="event-status">—</dd></div>
         </dl>
+        <button type="button" id="edit-event" aria-controls="edit-event-form" aria-expanded="false">Edit event</button>
+        <button type="button" id="delete-event">Delete event</button>
+        <p id="delete-message" role="status" hidden></p>
+        <form id="edit-event-form" hidden>
+          <h2>Edit event</h2>
+          <p><label>Name <input name="name" required /></label></p>
+          <p><label>Description <textarea name="description"></textarea></label></p>
+          <p><label>Location <input name="location" /></label></p>
+          <p><label>Expected attendance <input name="expected_attendance" type="number" min="0" /></label></p>
+          <p>Saving will be available once the event API is connected.</p>
+          <button type="button" id="cancel-edit">Cancel</button>
+        </form>
       </section>
     </main>
   </body>
