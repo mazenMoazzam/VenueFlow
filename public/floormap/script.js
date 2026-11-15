@@ -57,6 +57,21 @@ dropTarget.addEventListener('drop', (e) => {
   }
 });
 
+window.addEventListener('keydown', (e) => {
+  if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+  const tag = document.activeElement ? document.activeElement.tagName : '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable) {
+    return;
+  }
+  const activeObjects = canvas.getActiveObjects();
+  if (activeObjects && activeObjects.length) {
+    e.preventDefault();
+    activeObjects.forEach((obj) => canvas.remove(obj));
+    canvas.discardActiveObject();
+    canvas.requestRenderAll();
+  }
+});
+
 canvas.on('object:moving', (e) => {
   clampToBounds(e.target);
 });
