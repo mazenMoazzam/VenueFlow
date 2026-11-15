@@ -11,6 +11,7 @@ fabric.Object.prototype.cornerSize = 8;
 fabric.Object.prototype.padding = 0;
 
 const canvas = new fabric.Canvas('c');
+fabric.Object.prototype.controls.mtr = createRotationControl();
 
 const dragItems = document.querySelectorAll('.palette-card, .palette-item');
 dragItems.forEach((item) => {
@@ -114,6 +115,8 @@ canvas.on('object:modified', (e) => {
       scaleY: 1
     });
   }
+  clampToBounds(target);
+  canvas.requestRenderAll();
 });
 
 function createRectangle(x, y) {
@@ -148,9 +151,123 @@ function createCircle(x, y) {
   });
 }
 
-function clampToBounds(target) {
+function createRotationControl() {
+  return new fabric.Control({
+    x: 0,
+    y: -0.5,
+    offsetX: 0,
+    offsetY: -30,
+    actionHandler: fabric.controlsUtils.rotationWithSnapping,
+    cursorStyleHandler: fabric.controlsUtils.rotationStyleHandler,
+    withConnection: false,
+    actionName: 'rotate',
+    positionHandler: function(dim, finalMatrix, fabricObject) {
+      if (!canvas._currentTransform || canvas._currentTransform.action !== 'rotate') {
+        const candidates = [
+          { x: 0, y: -0.5, offsetX: 0, offsetY: -30 },
+          { x: 0, y: 0.5, offsetX: 0, offsetY: 30 },
+          { x: 0.5, y: 0, offsetX: 30, offsetY: 0 },
+          { x: -0.5, y: 0, offsetX: -30, offsetY: 0 }
+        ];
+        const pad = 12;
+        let bestCandidate = candidates[0];
+        let bestDist = -Infinity;
+        for (let i = 0; i < candidates.length; i++) {
+          const c = candidates[i];
+          const pt = fabric.util.transformPoint({
+            x: c.x * dim.x + c.offsetX,
+            y: c.y * dim.y + c.offsetY
+          }, finalMatrix);
+          const dist = Math.min(
+            pt.x - pad,
+            canvas.width - pad - pt.x,
+            pt.y - pad,
+            canvas.height - pad - pt.y
+          );
+          if (dist >= 0) {
+            bestCandidate = c;
+            break;
+          }
+          if (dist > bestDist) {
+            bestDist = dist;
+            bestCandidate = c;
+          }
+        }
+        this.x = bestCandidate.x;
+        this.y = bestCandidate.y;
+        this.offsetX = bestCandidate.offsetX;
+        this.offsetY = bestCandidate.offsetY;
+      }
+      return fabric.util.transformPoint({
+        x: this.x * dim.x + this.offsetX,
+        y: this.y * dim.y + this.offsetY
+      }, finalMatrix);
+    },
+    render: function(ctx, left, top, styleOverride, fabricObject) {
+      styleOverride = styleOverride || {};
+      const dim = fabricObject._calculateCurrentDimensions();
+      const matrix = fabricObject.calcTransformMatrix();
+      const edge = fabric.util.transformPoint({
+        x: this.x * dim.x,
+        y: this.y * dim.y
+      }, matrix);
+
+      ctx.save();
+      ctx.strokeStyle = styleOverride.borderColor || fabricObject.borderColor;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(edge.x, edge.y);
+      ctx.lineTo(left, top);
+      ctx.stroke();
+      ctx.restore();
+
+      fabric.controlsUtils.renderCircleControl.call(this, ctx, left, top, styleOverride, fabricObject);
+    }
+  });
+}
+
+function getShapeBounds(target) {
+  const center = target.getCenterPoint();
+  const rad = fabric.util.degreesToRadians(target.angle || 0);
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  const strokeOffset = (target.stroke && target.strokeWidth) ? target.strokeWidth / 2 : 0;
+
+  if (target.type === 'ellipse') {
+    const a = target.rx * target.scaleX + strokeOffset;
+    const b = target.ry * target.scaleY + strokeOffset;
+    const ax = Math.sqrt((a * cos) ** 2 + (b * sin) ** 2);
+    const ay = Math.sqrt((a * sin) ** 2 + (b * cos) ** 2);
+    return {
+      left: center.x - ax,
+      top: center.y - ay,
+      width: ax * 2,
+      height: ay * 2
+    };
+  }
+
+  if (target.type === 'rect') {
+    const w = target.width * target.scaleX;
+    const h = target.height * target.scaleY;
+    const r = Math.min((target.rx || 0) * target.scaleX, w / 2, h / 2);
+    const w_inner = Math.max(0, w - 2 * r);
+    const h_inner = Math.max(0, h - 2 * r);
+    const ax = (w_inner / 2) * Math.abs(cos) + (h_inner / 2) * Math.abs(sin) + r + strokeOffset;
+    const ay = (w_inner / 2) * Math.abs(sin) + (h_inner / 2) * Math.abs(cos) + r + strokeOffset;
+    return {
+      left: center.x - ax,
+      top: center.y - ay,
+      width: ax * 2,
+      height: ay * 2
+    };
+  }
+
   target.setCoords();
-  const bound = target.getBoundingRect(true);
+  return target.getBoundingRect(true);
+}
+
+function clampToBounds(target) {
+  const bound = getShapeBounds(target);
 
   if (bound.width <= canvas.width) {
     if (bound.left < 0) {
