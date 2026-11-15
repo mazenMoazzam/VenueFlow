@@ -1,6 +1,6 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
-const { createUser } = require("../db");
+const { createUser, findUserByEmail } = require("../db");
 
 const router = express.Router();
 
@@ -10,8 +10,10 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const UNIQUE_VIOLATION = "23505";
 
-// Logs a user in. A new session id is created first so an old (possibly
-// stolen) session id can't be reused after login.
+const LOGIN_ERROR = "Incorrect email or password";
+
+const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", SALT_ROUNDS);
+
 function startSession(req, userId) {
   return new Promise((resolve, reject) => {
     req.session.regenerate((regenerateError) => {
@@ -51,6 +53,44 @@ router.post("/register", async (req, res) => {
     console.error("Failed to register user", error);
     res.status(500).json({ error: "Something went wrong" });
   }
+});
+
+router.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  if (typeof email !== "string" || typeof password !== "string" || !email || !password) {
+    return res.status(400).json({ error: "Email and password are required" });
+  }
+
+  try {
+    const user = await findUserByEmail(email);
+    const passwordMatches = await bcrypt.compare(password, user ? user.password_hash : DUMMY_HASH);
+
+    // Same message for an unknown email and a wrong password, so the response
+    // doesn't reveal which emails have accounts.
+    if (!user || !passwordMatches) {
+      return res.status(401).json({ error: LOGIN_ERROR });
+    }
+
+    await startSession(req, user.id);
+
+    const { password_hash: _passwordHash, ...safeUser } = user;
+    res.json({ user: safeUser });
+  } catch (error) {
+    console.error("Failed to log in", error);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+router.post("/logout", (req, res) => {
+  req.session.destroy((error) => {
+    if (error) {
+      console.error("Failed to log out", error);
+      return res.status(500).json({ error: "Something went wrong" });
+    }
+    res.clearCookie("connect.sid");
+    res.status(204).end();
+  });
 });
 
 module.exports = router;
