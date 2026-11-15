@@ -51,8 +51,13 @@ dropTarget.addEventListener('drop', (e) => {
 
   if (shape) {
     canvas.add(shape);
+    clampToBounds(shape);
     canvas.setActiveObject(shape);
   }
+});
+
+canvas.on('object:moving', (e) => {
+  clampToBounds(e.target);
 });
 
 canvas.on('object:scaling', (e) => {
@@ -141,4 +146,27 @@ function createCircle(x, y) {
     originY: 'center',
     objectCaching: false
   });
+}
+
+function clampToBounds(target) {
+  target.setCoords();
+  const bound = target.getBoundingRect(true);
+
+  if (bound.width <= canvas.width) {
+    if (bound.left < 0) {
+      target.left += -bound.left;
+    } else if (bound.left + bound.width > canvas.width) {
+      target.left -= (bound.left + bound.width - canvas.width);
+    }
+  }
+
+  if (bound.height <= canvas.height) {
+    if (bound.top < 0) {
+      target.top += -bound.top;
+    } else if (bound.top + bound.height > canvas.height) {
+      target.top -= (bound.top + bound.height - canvas.height);
+    }
+  }
+
+  target.setCoords();
 }
