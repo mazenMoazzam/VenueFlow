@@ -1,6 +1,6 @@
 .floormap-layout {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 240px 1fr 280px;
   gap: 16px;
   align-items: start;
 }
@@ -76,4 +76,111 @@
   border: 1px solid var(--color-border);
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.empty-state {
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 4px 0 0;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+.properties-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.property-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.property-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+}
+
+.name-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+}
+
+.name-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.name-input,
+.dimension-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 13px;
+  outline: none;
+}
+
+.name-input {
+  font-weight: 600;
+  cursor: default;
+  padding: 0;
+}
+
+.dimensions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.dimension-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-label {
+  font-size: 11px;
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+.input-with-unit {
+  display: flex;
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 0 8px;
+  transition: border-color 0.15s ease;
+}
+
+.input-with-unit:focus-within {
+  border-color: #22c55e;
+}
+
+.dimension-input {
+  padding: 6px 0;
+  -moz-appearance: textfield;
+}
+
+.dimension-input::-webkit-inner-spin-button,
+.dimension-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }

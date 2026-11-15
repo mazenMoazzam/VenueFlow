@@ -109,6 +109,7 @@ canvas.on('object:scaling', (e) => {
   if (clamped) {
     target.setPositionByOrigin(anchor, originX, originY);
   }
+  updatePropertiesPanel();
 });
 
 canvas.on('object:modified', (e) => {
@@ -132,7 +133,105 @@ canvas.on('object:modified', (e) => {
   }
   clampToBounds(target);
   canvas.requestRenderAll();
+  updatePropertiesPanel();
 });
+
+canvas.on('selection:created', updatePropertiesPanel);
+canvas.on('selection:updated', updatePropertiesPanel);
+canvas.on('selection:cleared', updatePropertiesPanel);
+
+const noSel = document.getElementById('no-selection');
+const selProp = document.getElementById('selection-properties');
+const propName = document.getElementById('prop-name');
+const propPreview = document.getElementById('prop-preview');
+const propWidth = document.getElementById('prop-width');
+const propLength = document.getElementById('prop-length');
+const propRadius = document.getElementById('prop-radius');
+const radiusGroup = document.getElementById('prop-radius-group');
+
+function setShapeDimension(active, isWidth, val) {
+  if (active.type === 'rect') {
+    active.set(isWidth ? 'width' : 'height', val);
+    active.set(isWidth ? 'scaleX' : 'scaleY', 1);
+  } else if (active.type === 'ellipse') {
+    active.set(isWidth ? 'rx' : 'ry', val / 2);
+    active.set(isWidth ? 'scaleX' : 'scaleY', 1);
+  }
+  active.setCoords();
+  clampToBounds(active);
+  canvas.requestRenderAll();
+}
+
+function bindNumericInput(input, getBounds, onApply) {
+  if (!input) return;
+  function handle(finalize) {
+    const active = canvas.getActiveObject();
+    if (!active) return;
+    const { min, max } = getBounds(active);
+    let val = parseFloat(input.value);
+    if (isNaN(val)) {
+      if (finalize) {
+        input.value = min;
+        onApply(active, min);
+      }
+      return;
+    }
+    if (val > max) {
+      val = max;
+      input.value = max;
+    }
+    if (finalize && val < min) {
+      val = min;
+      input.value = min;
+    }
+    if (val >= min) onApply(active, val);
+  }
+  input.addEventListener('input', () => handle(false));
+  input.addEventListener('change', () => handle(true));
+}
+
+bindNumericInput(propWidth, () => ({ min: 20, max: canvas.width }), (active, val) => setShapeDimension(active, true, val));
+bindNumericInput(propLength, () => ({ min: 20, max: canvas.height }), (active, val) => setShapeDimension(active, false, val));
+bindNumericInput(
+  propRadius,
+  (active) => ({
+    min: 0,
+    max: Math.floor(Math.min(active.width * active.scaleX, active.height * active.scaleY) / 2)
+  }),
+  (active, val) => {
+    active.set({ rx: val / active.scaleX, ry: val / active.scaleY });
+    canvas.requestRenderAll();
+  }
+);
+
+function updatePropertiesPanel() {
+  const active = canvas.getActiveObject();
+  if (!noSel || !selProp) return;
+
+  const isSingle = active && active.type !== 'activeSelection';
+  noSel.style.display = isSingle ? 'none' : 'block';
+  selProp.style.display = isSingle ? 'flex' : 'none';
+  if (!isSingle) return;
+
+  const isRect = active.type === 'rect';
+  propName.value = isRect ? 'Rectangle' : 'Circle';
+  propPreview.innerHTML = isRect
+    ? '<svg width="18" height="13" viewBox="0 0 18 13" fill="none"><rect x="1" y="1" width="16" height="11" rx="2" fill="#f8fafc" stroke="#475569" stroke-width="1.2"/></svg>'
+    : '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" fill="#f8fafc" stroke="#475569" stroke-width="1.2"/></svg>';
+
+  const w = Math.round((isRect ? active.width : active.rx * 2) * active.scaleX);
+  const h = Math.round((isRect ? active.height : active.ry * 2) * active.scaleY);
+  if (document.activeElement !== propWidth) propWidth.value = w;
+  if (document.activeElement !== propLength) propLength.value = h;
+
+  if (radiusGroup) radiusGroup.style.display = isRect ? 'flex' : 'none';
+  if (isRect && propRadius) {
+    propRadius.max = Math.floor(Math.min(w, h) / 2);
+    if (document.activeElement !== propRadius) {
+      propRadius.value = Math.round((active.rx || 0) * active.scaleX);
+    }
+  }
+}
 
 function createRectangle(x, y) {
   return new fabric.Rect({
