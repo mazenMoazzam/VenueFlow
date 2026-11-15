@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Event details | VenueFlow</title>
     <link rel="stylesheet" href="/styles.css" />
+    <script src="/event.js" defer></script>
   </head>
   <body>
     <header class="topbar">
@@ -12,7 +13,8 @@
     </header>
     <main class="page event-page">
       <a class="event-back" href="/">← Back to event planner</a>
-      <section id="event-details" class="panel" aria-labelledby="event-name">
+      <p id="event-message" role="status">Loading event…</p>
+      <section id="event-details" class="panel" aria-labelledby="event-name" hidden>
         <div class="page-header">
           <h1 id="event-name">Event Details</h1>
         </div>
