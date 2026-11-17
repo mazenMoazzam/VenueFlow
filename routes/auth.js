@@ -55,11 +55,22 @@ router.post("/register", async (req, res) => {
   }
 });
 
+router.get("/login", (req, res) => {
+  if (req.session.userId) {
+    return res.redirect("/");
+  }
+  res.render("login", { error: null, email: "" });
+});
+
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
+  // Re-renders the login page with an error, keeping the email the user typed
+  const showError = (status, error) =>
+    res.status(status).render("login", { error, email: typeof email === "string" ? email : "" });
+
   if (typeof email !== "string" || typeof password !== "string" || !email || !password) {
-    return res.status(400).json({ error: "Email and password are required" });
+    return showError(400, "Email and password are required");
   }
 
   try {
@@ -67,16 +78,14 @@ router.post("/login", async (req, res) => {
     const passwordMatches = await bcrypt.compare(password, user ? user.password_hash : DUMMY_HASH);
 
     if (!user || !passwordMatches) {
-      return res.status(401).json({ error: LOGIN_ERROR });
+      return showError(401, LOGIN_ERROR);
     }
 
     await startSession(req, user.id);
-
-    const { password_hash: _passwordHash, ...safeUser } = user;
-    res.json({ user: safeUser });
+    res.redirect("/");
   } catch (error) {
     console.error("Failed to log in", error);
-    res.status(500).json({ error: "Something went wrong" });
+    showError(500, "Something went wrong. Please try again.");
   }
 });
 
@@ -84,10 +93,10 @@ router.post("/logout", (req, res) => {
   req.session.destroy((error) => {
     if (error) {
       console.error("Failed to log out", error);
-      return res.status(500).json({ error: "Something went wrong" });
+      return res.status(500).send("Something went wrong");
     }
     res.clearCookie("connect.sid");
-    res.status(204).end();
+    res.redirect("/login");
   });
 });
 
