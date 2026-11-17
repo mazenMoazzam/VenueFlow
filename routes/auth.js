@@ -66,8 +66,6 @@ router.post("/login", async (req, res) => {
     const user = await findUserByEmail(email);
     const passwordMatches = await bcrypt.compare(password, user ? user.password_hash : DUMMY_HASH);
 
-    // Same message for an unknown email and a wrong password, so the response
-    // doesn't reveal which emails have accounts.
     if (!user || !passwordMatches) {
       return res.status(401).json({ error: LOGIN_ERROR });
     }
