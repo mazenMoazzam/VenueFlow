@@ -68,11 +68,67 @@ async function listUsers() {
   return result.rows;
 }
 
+function trimOrNull(value) {
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
+}
+
+function numberOrNull(value) {
+  return value === undefined || value === null || value === "" ? null : Number(value);
+}
+
+async function createEvent({
+  ownerUserId,
+  name,
+  description,
+  starts_at,
+  ends_at,
+  location,
+  budget,
+  expected_attendees
+}) {
+  const result = await pool.query(
+    `
+      INSERT INTO events
+        (owner_user_id, name, description, starts_at, ends_at, location, budget, expected_attendees)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *
+    `,
+    [
+      ownerUserId,
+      name.trim(),
+      trimOrNull(description),
+      starts_at,
+      ends_at || null,
+      trimOrNull(location),
+      numberOrNull(budget),
+      numberOrNull(expected_attendees)
+    ]
+  );
+
+  return result.rows[0];
+}
+
+async function listEventsForUser(userId) {
+  const result = await pool.query(
+    `
+      SELECT *
+      FROM events
+      WHERE owner_user_id = $1
+      ORDER BY starts_at
+    `,
+    [userId]
+  );
+
+  return result.rows;
+}
+
 module.exports = {
   pool,
   initializeDatabase,
   createUser,
   findUserByEmail,
   findUserById,
-  listUsers
+  listUsers,
+  createEvent,
+  listEventsForUser
 };
