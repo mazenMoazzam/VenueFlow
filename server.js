@@ -1,6 +1,8 @@
 const express = require("express");
 const path = require("path");
 const emptyRouter = require("./routes/empty");
+const eventsRouter = require("./routes/events");
+const attachDemoUser = require("./middleware/demoUser");
 const { initializeDatabase } = require("./db");
 
 const app = express();
@@ -14,6 +16,7 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.use("/api/empty", emptyRouter);
+app.use("/api/events", attachDemoUser, eventsRouter);
 
 app.get("*", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
