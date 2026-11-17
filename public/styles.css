@@ -76,6 +76,14 @@ body {
   color: var(--color-muted);
 }
 
+.new-event-link {
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--color-accent);
+  font-weight: 500;
+  text-decoration: none;
+}
+
 /* Calendar */
 
 #calendar-panel {

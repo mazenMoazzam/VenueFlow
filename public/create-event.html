@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create event | VenueFlow</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/create-event.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <span class="brand"><span class="brand-mark">✳</span> Venueflow</span>
+    </header>
+
+    <main class="page create-event-page">
+      <a class="back-link" href="/">← Back to event planner</a>
+
+      <div class="page-header">
+        <h1>Create event</h1>
+      </div>
+
+      <form id="create-event-form" class="panel event-form" novalidate>
+        <ul id="form-errors" class="form-errors" role="alert" hidden></ul>
+
+        <label class="form-field">
+          <span>Name</span>
+          <input name="name" required maxlength="200" />
+        </label>
+
+        <label class="form-field">
+          <span>Description <em>(optional)</em></span>
+          <textarea name="description" rows="3"></textarea>
+        </label>
+
+        <div class="form-row">
+          <label class="form-field">
+            <span>Starts</span>
+            <input name="starts_at" type="datetime-local" required />
+          </label>
+
+          <label class="form-field">
+            <span>Ends <em>(optional)</em></span>
+            <input name="ends_at" type="datetime-local" />
+          </label>
+        </div>
+
+        <label class="form-field">
+          <span>Location <em>(optional)</em></span>
+          <input name="location" />
+        </label>
+
+        <div class="form-row">
+          <label class="form-field">
+            <span>Expected attendees <em>(optional)</em></span>
+            <input name="expected_attendees" type="number" min="1" step="1" />
+          </label>
+
+          <label class="form-field">
+            <span>Budget (USD) <em>(optional)</em></span>
+            <input name="budget" type="number" min="0" step="0.01" />
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <a class="button button-secondary" href="/">Cancel</a>
+          <button type="submit" class="button button-primary">Create event</button>
+        </div>
+      </form>
+    </main>
+
+    <script type="module" src="/create-event.js"></script>
+  </body>
+</html>
