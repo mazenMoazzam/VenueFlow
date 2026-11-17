@@ -4,6 +4,7 @@ const session = require("express-session");
 const PgSession = require("connect-pg-simple")(session);
 const emptyRouter = require("./routes/empty");
 const authRouter = require("./routes/auth");
+const { requireAuth } = require("./middleware/auth");
 const { pool, initializeDatabase } = require("./db");
 
 const app = express();
@@ -18,7 +19,11 @@ if (IS_PRODUCTION) {
   app.set("trust proxy", 1);
 }
 
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 app.use(
   session({
@@ -41,10 +46,14 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.use("/api/empty", emptyRouter);
-app.use("/api/auth", authRouter);
+app.use("/", authRouter);
 
-app.get("*", (_req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+app.get("/", requireAuth, (_req, res) => {
+  res.render("planner");
+});
+
+app.use((_req, res) => {
+  res.status(404).send("Page not found");
 });
 
 async function start() {
