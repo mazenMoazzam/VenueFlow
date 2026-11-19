@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Event details | VenueFlow</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/event.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <span class="brand"><span class="brand-mark">✳</span> Venueflow</span>
+    </header>
+    <main class="page event-page">
+      <a class="event-back" href="/">← Back to event planner</a>
+      <p id="event-message" role="status">Loading event…</p>
+      <section id="event-details" class="panel" aria-labelledby="event-name" hidden>
+        <div class="page-header">
+          <h1 id="event-name">Event Details</h1>
+        </div>
+        <p id="event-description" class="event-description">Event description</p>
+        <dl class="event-fields">
+          <div><dt>Start</dt><dd id="event-start">—</dd></div>
+          <div><dt>End</dt><dd id="event-end">—</dd></div>
+          <div><dt>Location</dt><dd id="event-location">—</dd></div>
+          <div><dt>Expected attendance</dt><dd id="event-attendance">—</dd></div>
+          <div><dt>Status</dt><dd id="event-status">—</dd></div>
+        </dl>
+        <button type="button" id="edit-event" aria-controls="edit-event-form" aria-expanded="false">Edit event</button>
+        <button type="button" id="delete-event">Delete event</button>
+        <p id="delete-message" role="status" hidden></p>
+        <form id="edit-event-form" hidden>
+          <h2>Edit event</h2>
+          <p><label>Name <input name="name" required /></label></p>
+          <p><label>Description <textarea name="description"></textarea></label></p>
+          <p><label>Location <input name="location" /></label></p>
+          <p><label>Expected attendance <input name="expected_attendance" type="number" min="0" /></label></p>
+          <p>Saving will be available once the event API is connected.</p>
+          <button type="button" id="cancel-edit">Cancel</button>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>
