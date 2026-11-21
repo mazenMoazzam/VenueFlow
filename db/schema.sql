@@ -27,3 +27,16 @@ CREATE TABLE IF NOT EXISTS events (
 
 CREATE INDEX IF NOT EXISTS events_owner_user_id_idx ON events(owner_user_id);
 CREATE INDEX IF NOT EXISTS events_starts_at_idx ON events(starts_at);
+
+CREATE TABLE IF NOT EXISTS tasks (
+  id BIGSERIAL PRIMARY KEY,
+  event_id BIGINT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  due_date DATE,
+  completed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS tasks_event_id_idx ON tasks(event_id);
+CREATE INDEX IF NOT EXISTS tasks_due_date_idx ON tasks(due_date);

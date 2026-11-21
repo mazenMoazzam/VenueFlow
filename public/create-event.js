@@ -1,3 +1,5 @@
+import { showErrors, clearErrors } from "./form-errors.js";
+
 const form = document.getElementById("create-event-form");
 const errorList = document.getElementById("form-errors");
 const submitButton = form.querySelector('button[type="submit"]');
@@ -15,22 +17,10 @@ function readFormValues() {
   };
 }
 
-function showErrors(messages) {
-  errorList.replaceChildren(
-    ...messages.map((message) => {
-      const item = document.createElement("li");
-      item.textContent = message;
-      return item;
-    })
-  );
-  errorList.hidden = false;
-  errorList.scrollIntoView({ block: "nearest" });
-}
-
 async function submitEvent(submission) {
   submission.preventDefault();
   submitButton.disabled = true;
-  errorList.hidden = true;
+  clearErrors(errorList);
 
   try {
     const response = await fetch("/api/events", {
@@ -41,13 +31,13 @@ async function submitEvent(submission) {
     const body = await response.json();
 
     if (!response.ok) {
-      showErrors(body.errors || ["Unable to create the event."]);
+      showErrors(errorList, body.errors || ["Unable to create the event."]);
       return;
     }
 
     window.location.href = `/event.html?id=${encodeURIComponent(body.id)}`;
   } catch {
-    showErrors(["Unable to create the event. Please try again."]);
+    showErrors(errorList, ["Unable to create the event. Please try again."]);
   } finally {
     submitButton.disabled = false;
   }
