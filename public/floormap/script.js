@@ -10,14 +10,122 @@ fabric.Object.prototype.cornerStyle = 'circle';
 fabric.Object.prototype.cornerSize = 8;
 fabric.Object.prototype.padding = 0;
 
-const canvas = new fabric.Canvas('c');
+const CANVAS_BASE_WIDTH = 800;
+const CANVAS_BASE_HEIGHT = 600;
+
+const canvas = new fabric.Canvas('c', {
+  width: CANVAS_BASE_WIDTH,
+  height: CANVAS_BASE_HEIGHT
+});
 fabric.Object.prototype.controls.mtr = createRotationControl();
+
+function resizeCanvas() {
+  const wrapper = document.querySelector('.canvas-wrapper');
+  if (!wrapper) return;
+  const padding = 32;
+  const availableWidth = wrapper.clientWidth - padding;
+  if (availableWidth <= 0) return;
+  const scale = Math.min(1, availableWidth / CANVAS_BASE_WIDTH);
+  canvas.setDimensions({
+    width: Math.round(CANVAS_BASE_WIDTH * scale),
+    height: Math.round(CANVAS_BASE_HEIGHT * scale)
+  });
+  canvas.setZoom(scale);
+  canvas.requestRenderAll();
+}
+
+const resizeObserver = new ResizeObserver(() => {
+  resizeCanvas();
+});
+const wrapperEl = document.querySelector('.canvas-wrapper');
+if (wrapperEl) {
+  resizeObserver.observe(wrapperEl);
+}
+window.addEventListener('resize', resizeCanvas);
+
+const undoStack = [];
+const redoStack = [];
+const MAX_HISTORY = 50;
+let isHistoryProcessing = false;
+
+function saveState() {
+  if (isHistoryProcessing) return;
+  const json = JSON.stringify(canvas.toJSON(['name', 'sides', 'ratioLocked', 'lockUniScaling', 'points', 'pathOffset']));
+  if (undoStack.length > 0 && undoStack[undoStack.length - 1] === json) {
+    return;
+  }
+  undoStack.push(json);
+  if (undoStack.length > MAX_HISTORY) {
+    undoStack.shift();
+  }
+  redoStack.length = 0;
+  updateHistoryButtons();
+}
+
+function undo() {
+  if (undoStack.length <= 1 || isHistoryProcessing) return;
+  isHistoryProcessing = true;
+  const currentState = undoStack.pop();
+  redoStack.push(currentState);
+  const prevState = undoStack[undoStack.length - 1];
+  canvas.loadFromJSON(prevState, () => {
+    resizeCanvas();
+    canvas.renderAll();
+    isHistoryProcessing = false;
+    updatePropertiesPanel();
+    updateHistoryButtons();
+    updateContextMenuState();
+  });
+}
+
+function redo() {
+  if (redoStack.length === 0 || isHistoryProcessing) return;
+  isHistoryProcessing = true;
+  const nextState = redoStack.pop();
+  undoStack.push(nextState);
+  canvas.loadFromJSON(nextState, () => {
+    resizeCanvas();
+    canvas.renderAll();
+    isHistoryProcessing = false;
+    updatePropertiesPanel();
+    updateHistoryButtons();
+    updateContextMenuState();
+  });
+}
+
+function resetCanvas() {
+  if (canvas.getObjects().length === 0) return;
+  canvas.discardActiveObject();
+  canvas.clear();
+  canvas.setBackgroundColor('#ffffff', () => {
+    canvas.renderAll();
+    saveState();
+    updatePropertiesPanel();
+    updateContextMenuState();
+    updateHistoryButtons();
+  });
+}
 
 const dragItems = document.querySelectorAll('.palette-card, .palette-item');
 dragItems.forEach((item) => {
   item.addEventListener('dragstart', (e) => {
     const type = item.dataset.type || item.getAttribute('data-type');
     e.dataTransfer.setData('text/plain', type);
+  });
+  item.addEventListener('click', () => {
+    const type = item.dataset.type || item.getAttribute('data-type');
+    let shape;
+    if (type === 'polygon') {
+      shape = createPolygon(CANVAS_BASE_WIDTH / 2, CANVAS_BASE_HEIGHT / 2, 4);
+    } else if (type === 'circle') {
+      shape = createCircle(CANVAS_BASE_WIDTH / 2, CANVAS_BASE_HEIGHT / 2);
+    }
+    if (shape) {
+      canvas.add(shape);
+      clampToBounds(shape);
+      canvas.setActiveObject(shape);
+      saveState();
+    }
   });
 });
 
@@ -32,10 +140,9 @@ dropTarget.addEventListener('drop', (e) => {
   e.preventDefault();
 
   const shapeType = e.dataTransfer.getData('text/plain');
-
-  const rect = canvas.upperCanvasEl.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
+  const pointer = canvas.getPointer(e);
+  const x = pointer.x;
+  const y = pointer.y;
 
   let shape;
   switch (shapeType) {
@@ -54,21 +161,105 @@ dropTarget.addEventListener('drop', (e) => {
     canvas.add(shape);
     clampToBounds(shape);
     canvas.setActiveObject(shape);
+    saveState();
   }
 });
 
+let clipboard = null;
+let pasteOffset = 20;
+let lastRightClickPointer = null;
+
+function copyObject() {
+  const active = canvas.getActiveObject();
+  if (!active) return;
+  active.clone((cloned) => {
+    clipboard = cloned;
+    pasteOffset = 20;
+    updateContextMenuState();
+  }, ['name', 'sides', 'ratioLocked', 'lockUniScaling', 'points', 'pathOffset']);
+}
+
+function pasteObject(targetX, targetY) {
+  if (!clipboard) return;
+  clipboard.clone((cloned) => {
+    canvas.discardActiveObject();
+    if (typeof targetX === 'number' && typeof targetY === 'number') {
+      cloned.set({
+        left: targetX,
+        top: targetY
+      });
+    } else {
+      cloned.set({
+        left: cloned.left + pasteOffset,
+        top: cloned.top + pasteOffset
+      });
+      pasteOffset += 20;
+    }
+    cloned.setCoords();
+    if (cloned.type === 'activeSelection') {
+      cloned.canvas = canvas;
+      cloned.forEachObject((obj) => {
+        canvas.add(obj);
+        clampToBounds(obj);
+      });
+      cloned.setCoords();
+    } else {
+      canvas.add(cloned);
+      clampToBounds(cloned);
+    }
+    canvas.setActiveObject(cloned);
+    canvas.requestRenderAll();
+    saveState();
+    updatePropertiesPanel();
+    updateContextMenuState();
+  }, ['name', 'sides', 'ratioLocked', 'lockUniScaling', 'points', 'pathOffset']);
+}
+
+function deleteSelected() {
+  const activeObjects = canvas.getActiveObjects();
+  if (activeObjects && activeObjects.length) {
+    activeObjects.forEach((obj) => canvas.remove(obj));
+    canvas.discardActiveObject();
+    canvas.requestRenderAll();
+    saveState();
+    updatePropertiesPanel();
+    updateContextMenuState();
+  }
+}
+
 window.addEventListener('keydown', (e) => {
-  if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+  if (e.key === 'Escape') {
+    hideContextMenu();
+    return;
+  }
   const tag = document.activeElement ? document.activeElement.tagName : '';
   if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable) {
     return;
   }
-  const activeObjects = canvas.getActiveObjects();
-  if (activeObjects && activeObjects.length) {
+  if (e.key === 'Delete' || e.key === 'Backspace') {
     e.preventDefault();
-    activeObjects.forEach((obj) => canvas.remove(obj));
-    canvas.discardActiveObject();
-    canvas.requestRenderAll();
+    deleteSelected();
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
+    e.preventDefault();
+    copyObject();
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
+    e.preventDefault();
+    pasteObject();
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') {
+    e.preventDefault();
+    undo();
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) {
+    e.preventDefault();
+    redo();
+    return;
   }
 });
 
@@ -158,12 +349,142 @@ canvas.on('object:modified', (e) => {
   }
   clampToBounds(target);
   canvas.requestRenderAll();
+  saveState();
   updatePropertiesPanel();
 });
 
-canvas.on('selection:created', updatePropertiesPanel);
-canvas.on('selection:updated', updatePropertiesPanel);
-canvas.on('selection:cleared', updatePropertiesPanel);
+canvas.on('selection:created', () => {
+  updatePropertiesPanel();
+  updateContextMenuState();
+});
+canvas.on('selection:updated', () => {
+  updatePropertiesPanel();
+  updateContextMenuState();
+});
+canvas.on('selection:cleared', () => {
+  updatePropertiesPanel();
+  updateContextMenuState();
+  updateHistoryButtons();
+});
+
+const btnUndo = document.getElementById('btn-undo');
+const btnRedo = document.getElementById('btn-redo');
+const btnReset = document.getElementById('btn-reset');
+const ctxMenu = document.getElementById('context-menu');
+const ctxUndo = document.getElementById('ctx-undo');
+const ctxRedo = document.getElementById('ctx-redo');
+const ctxCopy = document.getElementById('ctx-copy');
+const ctxPaste = document.getElementById('ctx-paste');
+const ctxDelete = document.getElementById('ctx-delete');
+
+function hideContextMenu() {
+  if (ctxMenu) ctxMenu.style.display = 'none';
+}
+
+function updateHistoryButtons() {
+  const canUndo = undoStack.length > 1;
+  const canRedo = redoStack.length > 0;
+  const hasObjects = canvas.getObjects().length > 0;
+  if (btnUndo) btnUndo.disabled = !canUndo;
+  if (btnRedo) btnRedo.disabled = !canRedo;
+  if (btnReset) btnReset.disabled = !hasObjects;
+  if (ctxUndo) ctxUndo.disabled = !canUndo;
+  if (ctxRedo) ctxRedo.disabled = !canRedo;
+}
+
+function updateContextMenuState() {
+  const hasSelection = !!canvas.getActiveObject();
+  const canUndo = undoStack.length > 1;
+  const canRedo = redoStack.length > 0;
+  if (ctxUndo) ctxUndo.disabled = !canUndo;
+  if (ctxRedo) ctxRedo.disabled = !canRedo;
+  if (ctxCopy) ctxCopy.disabled = !hasSelection;
+  if (ctxPaste) ctxPaste.disabled = !clipboard;
+  if (ctxDelete) ctxDelete.disabled = !hasSelection;
+}
+
+canvas.upperCanvasEl.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  const pointer = canvas.getPointer(e);
+  lastRightClickPointer = pointer;
+  const target = canvas.findTarget(e);
+  if (target) {
+    if (canvas.getActiveObject() !== target) {
+      canvas.setActiveObject(target);
+      canvas.requestRenderAll();
+      updatePropertiesPanel();
+    }
+  } else {
+    canvas.discardActiveObject();
+    canvas.requestRenderAll();
+    updatePropertiesPanel();
+  }
+  updateContextMenuState();
+
+  const menuW = 160;
+  const menuH = 120;
+  const posX = (e.clientX + menuW > window.innerWidth) ? (window.innerWidth - menuW - 8) : e.clientX;
+  const posY = (e.clientY + menuH > window.innerHeight) ? (window.innerHeight - menuH - 8) : e.clientY;
+  ctxMenu.style.left = `${posX}px`;
+  ctxMenu.style.top = `${posY}px`;
+  ctxMenu.style.display = 'block';
+});
+
+document.addEventListener('pointerdown', (e) => {
+  if (ctxMenu && !ctxMenu.contains(e.target)) {
+    hideContextMenu();
+  }
+});
+
+window.addEventListener('resize', hideContextMenu);
+window.addEventListener('scroll', hideContextMenu, true);
+
+if (btnUndo) {
+  btnUndo.addEventListener('click', undo);
+}
+
+if (btnRedo) {
+  btnRedo.addEventListener('click', redo);
+}
+
+if (btnReset) {
+  btnReset.addEventListener('click', resetCanvas);
+}
+
+if (ctxUndo) {
+  ctxUndo.addEventListener('click', () => {
+    undo();
+    hideContextMenu();
+  });
+}
+
+if (ctxRedo) {
+  ctxRedo.addEventListener('click', () => {
+    redo();
+    hideContextMenu();
+  });
+}
+
+if (ctxCopy) {
+  ctxCopy.addEventListener('click', () => {
+    copyObject();
+    hideContextMenu();
+  });
+}
+
+if (ctxPaste) {
+  ctxPaste.addEventListener('click', () => {
+    pasteObject(lastRightClickPointer?.x, lastRightClickPointer?.y);
+    hideContextMenu();
+  });
+}
+
+if (ctxDelete) {
+  ctxDelete.addEventListener('click', () => {
+    deleteSelected();
+    hideContextMenu();
+  });
+}
 
 const noSel = document.getElementById('no-selection');
 const selProp = document.getElementById('selection-properties');
@@ -208,12 +529,12 @@ function setShapeDimension(active, isWidth, val) {
       const ratio = currentW > 0 ? (currentH / currentW) : 1;
       let wVal = isWidth ? val : (ratio > 0 ? val / ratio : val);
       let hVal = isWidth ? val * ratio : val;
-      if (wVal > canvas.width) {
-        wVal = canvas.width;
+      if (wVal > CANVAS_BASE_WIDTH) {
+        wVal = CANVAS_BASE_WIDTH;
         hVal = wVal * ratio;
       }
-      if (hVal > canvas.height) {
-        hVal = canvas.height;
+      if (hVal > CANVAS_BASE_HEIGHT) {
+        hVal = CANVAS_BASE_HEIGHT;
         wVal = ratio > 0 ? hVal / ratio : hVal;
       }
       wVal = Math.max(20, Math.round(wVal));
@@ -249,12 +570,12 @@ function setShapeDimension(active, isWidth, val) {
       const ratio = currentW > 0 ? (currentH / currentW) : 1;
       let wVal = isWidth ? val : (ratio > 0 ? val / ratio : val);
       let hVal = isWidth ? val * ratio : val;
-      if (wVal > canvas.width) {
-        wVal = canvas.width;
+      if (wVal > CANVAS_BASE_WIDTH) {
+        wVal = CANVAS_BASE_WIDTH;
         hVal = wVal * ratio;
       }
-      if (hVal > canvas.height) {
-        hVal = canvas.height;
+      if (hVal > CANVAS_BASE_HEIGHT) {
+        hVal = CANVAS_BASE_HEIGHT;
         wVal = ratio > 0 ? hVal / ratio : hVal;
       }
       wVal = Math.max(20, Math.round(wVal));
@@ -323,11 +644,14 @@ function bindNumericInput(input, getBounds, onApply) {
     if (val >= min) onApply(active, val);
   }
   input.addEventListener('input', () => handle(false));
-  input.addEventListener('change', () => handle(true));
+  input.addEventListener('change', () => {
+    handle(true);
+    saveState();
+  });
 }
 
-bindNumericInput(propWidth, () => ({ min: 20, max: canvas.width }), (active, val) => setShapeDimension(active, true, val));
-bindNumericInput(propLength, () => ({ min: 20, max: canvas.height }), (active, val) => setShapeDimension(active, false, val));
+bindNumericInput(propWidth, () => ({ min: 20, max: CANVAS_BASE_WIDTH }), (active, val) => setShapeDimension(active, true, val));
+bindNumericInput(propLength, () => ({ min: 20, max: CANVAS_BASE_HEIGHT }), (active, val) => setShapeDimension(active, false, val));
 bindNumericInput(
   propSides,
   () => ({ min: 3, max: 20 }),
@@ -348,6 +672,7 @@ if (propName) {
     const fallback = active.type === 'polygon' ? 'Polygon' : 'Circle';
     active.name = trimmed || fallback;
     propName.value = active.name;
+    saveState();
   });
 
   propName.addEventListener('keydown', (e) => {
@@ -363,6 +688,7 @@ if (propRatioLock) {
     if (!active) return;
     active.ratioLocked = propRatioLock.checked;
     active.lockUniScaling = propRatioLock.checked;
+    saveState();
   });
 }
 
@@ -507,9 +833,9 @@ function createRotationControl() {
           }, finalMatrix);
           const dist = Math.min(
             pt.x - pad,
-            canvas.width - pad - pt.x,
+            CANVAS_BASE_WIDTH - pad - pt.x,
             pt.y - pad,
-            canvas.height - pad - pt.y
+            CANVAS_BASE_HEIGHT - pad - pt.y
           );
           if (dist >= 0) {
             bestCandidate = c;
@@ -556,13 +882,13 @@ function createRotationControl() {
 }
 
 function getShapeBounds(target) {
-  const center = target.getCenterPoint();
-  const rad = fabric.util.degreesToRadians(target.angle || 0);
-  const cos = Math.cos(rad);
-  const sin = Math.sin(rad);
   const strokeOffset = (target.stroke && target.strokeWidth) ? target.strokeWidth / 2 : 0;
 
   if (target.type === 'ellipse') {
+    const center = target.getCenterPoint();
+    const rad = fabric.util.degreesToRadians(target.angle || 0);
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
     const a = target.rx * target.scaleX + strokeOffset;
     const b = target.ry * target.scaleY + strokeOffset;
     const ax = Math.sqrt((a * cos) ** 2 + (b * sin) ** 2);
@@ -575,6 +901,35 @@ function getShapeBounds(target) {
     };
   }
 
+  if (target.type === 'polygon' && target.points && target.points.length > 0) {
+    const matrix = target.calcTransformMatrix();
+    const pathOffsetX = target.pathOffset ? target.pathOffset.x : 0;
+    const pathOffsetY = target.pathOffset ? target.pathOffset.y : 0;
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+
+    for (let i = 0; i < target.points.length; i++) {
+      const p = target.points[i];
+      const lx = p.x - pathOffsetX;
+      const ly = p.y - pathOffsetY;
+      const px = matrix[0] * lx + matrix[2] * ly + matrix[4];
+      const py = matrix[1] * lx + matrix[3] * ly + matrix[5];
+      if (px < minX) minX = px;
+      if (px > maxX) maxX = px;
+      if (py < minY) minY = py;
+      if (py > maxY) maxY = py;
+    }
+
+    return {
+      left: minX - strokeOffset,
+      top: minY - strokeOffset,
+      width: (maxX - minX) + strokeOffset * 2,
+      height: (maxY - minY) + strokeOffset * 2
+    };
+  }
+
   target.setCoords();
   return target.getBoundingRect(true);
 }
@@ -582,21 +937,25 @@ function getShapeBounds(target) {
 function clampToBounds(target) {
   const bound = getShapeBounds(target);
 
-  if (bound.width <= canvas.width) {
+  if (bound.width <= CANVAS_BASE_WIDTH) {
     if (bound.left < 0) {
       target.left += -bound.left;
-    } else if (bound.left + bound.width > canvas.width) {
-      target.left -= (bound.left + bound.width - canvas.width);
+    } else if (bound.left + bound.width > CANVAS_BASE_WIDTH) {
+      target.left -= (bound.left + bound.width - CANVAS_BASE_WIDTH);
     }
   }
 
-  if (bound.height <= canvas.height) {
+  if (bound.height <= CANVAS_BASE_HEIGHT) {
     if (bound.top < 0) {
       target.top += -bound.top;
-    } else if (bound.top + bound.height > canvas.height) {
-      target.top -= (bound.top + bound.height - canvas.height);
+    } else if (bound.top + bound.height > CANVAS_BASE_HEIGHT) {
+      target.top -= (bound.top + bound.height - CANVAS_BASE_HEIGHT);
     }
   }
 
   target.setCoords();
 }
+
+resizeCanvas();
+saveState();
+updateHistoryButtons();
