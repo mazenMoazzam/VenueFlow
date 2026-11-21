@@ -1,6 +1,21 @@
 const form = document.getElementById("create-event-form");
 const errorList = document.getElementById("form-errors");
 const submitButton = form.querySelector('button[type="submit"]');
+const dialog = document.getElementById("create-event-dialog");
+
+if (dialog) {
+  const openButton = document.getElementById("open-create-event");
+  const closeButton = dialog.querySelector(".dialog-close");
+  const cancelButton = dialog.querySelector(".dialog-cancel");
+  const closeDialog = () => dialog.close();
+
+  openButton.addEventListener("click", () => dialog.showModal());
+  closeButton.addEventListener("click", closeDialog);
+  cancelButton.addEventListener("click", closeDialog);
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) closeDialog();
+  });
+}
 
 function toIsoOrEmpty(localDateTime) {
   return localDateTime ? new Date(localDateTime).toISOString() : "";
