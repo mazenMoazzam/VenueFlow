@@ -117,6 +117,11 @@
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: 6px;
+  transition: border-color 0.15s ease;
+}
+
+.name-display:focus-within {
+  border-color: #22c55e;
 }
 
 .name-preview {
@@ -140,7 +145,7 @@
 
 .name-input {
   font-weight: 600;
-  cursor: default;
+  cursor: text;
   padding: 0;
 }
 

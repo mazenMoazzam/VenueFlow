@@ -334,6 +334,29 @@ bindNumericInput(
   (active, val) => setPolygonSides(active, Math.round(val))
 );
 
+if (propName) {
+  propName.addEventListener('input', () => {
+    const active = canvas.getActiveObject();
+    if (!active) return;
+    active.name = propName.value;
+  });
+
+  propName.addEventListener('change', () => {
+    const active = canvas.getActiveObject();
+    if (!active) return;
+    const trimmed = propName.value.trim();
+    const fallback = active.type === 'polygon' ? 'Polygon' : 'Circle';
+    active.name = trimmed || fallback;
+    propName.value = active.name;
+  });
+
+  propName.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      propName.blur();
+    }
+  });
+}
+
 if (propRatioLock) {
   propRatioLock.addEventListener('change', () => {
     const active = canvas.getActiveObject();
@@ -355,7 +378,9 @@ function updatePropertiesPanel() {
   const isPolygon = active.type === 'polygon';
   const isCircle = active.type === 'ellipse';
 
-  propName.value = isPolygon ? 'Polygon' : 'Circle';
+  if (document.activeElement !== propName) {
+    propName.value = active.name || (isPolygon ? 'Polygon' : 'Circle');
+  }
 
   const w = Math.round((isCircle ? active.rx * 2 : active.width) * active.scaleX);
   const h = Math.round((isCircle ? active.ry * 2 : active.height) * active.scaleY);
@@ -429,6 +454,7 @@ function createPolygon(x, y, sides = 4) {
     objectCaching: false,
     ratioLocked: true,
     lockUniScaling: true,
+    name: 'Polygon',
     sides: sides,
     pathOffset: { x: 0, y: 0 }
   });
@@ -446,6 +472,7 @@ function createCircle(x, y) {
     originX: 'center',
     originY: 'center',
     objectCaching: false,
+    name: 'Circle',
     ratioLocked: true,
     lockUniScaling: true
   });
