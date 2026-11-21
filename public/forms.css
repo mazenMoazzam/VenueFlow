@@ -1,0 +1,67 @@
+.form-field {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.form-field em {
+  color: var(--color-muted);
+  font-style: normal;
+  font-weight: 400;
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+  width: 100%;
+  padding: 8px 10px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font: inherit;
+  font-weight: 400;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -1px;
+}
+
+.form-errors {
+  margin: 0;
+  padding: 12px 12px 12px 32px;
+  color: #9b2c2c;
+  background: #fdf0f0;
+  border: 1px solid #f1c6c6;
+  border-radius: 6px;
+}
+
+.button {
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button-primary {
+  color: #ffffff;
+  background: var(--color-accent);
+}
+
+.button-primary:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.button-secondary {
+  color: var(--color-text);
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
