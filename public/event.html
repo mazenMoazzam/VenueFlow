@@ -35,7 +35,8 @@
           <p><label>Description <textarea name="description"></textarea></label></p>
           <p><label>Location <input name="location" /></label></p>
           <p><label>Expected attendance <input name="expected_attendees" type="number" min="1" step="1" /></label></p>
-          <p>Saving will be available once the event API is connected.</p>
+          <p id="save-message" role="status" hidden></p>
+          <button type="submit">Save</button>
           <button type="button" id="cancel-edit">Cancel</button>
         </form>
       </section>

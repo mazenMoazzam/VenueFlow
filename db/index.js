@@ -139,6 +139,62 @@ async function isEventOwner(eventId, userId) {
   return result.rowCount > 0;
 }
 
+async function findEventForUser(eventId, userId) {
+  const result = await pool.query(
+    `
+      SELECT *
+      FROM events
+      WHERE id = $1 AND owner_user_id = $2
+    `,
+    [eventId, userId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function updateEventForUser(eventId, userId, input) {
+  const result = await pool.query(
+    `
+      UPDATE events
+      SET name = $3,
+          description = $4,
+          starts_at = $5,
+          ends_at = $6,
+          location = $7,
+          budget = $8,
+          expected_attendees = $9,
+          updated_at = NOW()
+      WHERE id = $1 AND owner_user_id = $2
+      RETURNING *
+    `,
+    [
+      eventId,
+      userId,
+      input.name.trim(),
+      trimOrNull(input.description),
+      input.starts_at,
+      input.ends_at || null,
+      trimOrNull(input.location),
+      numberOrNull(input.budget),
+      numberOrNull(input.expected_attendees)
+    ]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function deleteEventForUser(eventId, userId) {
+  const result = await pool.query(
+    `
+      DELETE FROM events
+      WHERE id = $1 AND owner_user_id = $2
+    `,
+    [eventId, userId]
+  );
+
+  return result.rowCount > 0;
+}
+
 async function createTask({ eventId, title, dueDate }) {
   const result = await pool.query(
     `
@@ -195,6 +251,9 @@ module.exports = {
   createEvent,
   listEventsForUser,
   isEventOwner,
+  findEventForUser,
+  updateEventForUser,
+  deleteEventForUser,
   createTask,
   listTasksForUser,
   setTaskCompleted

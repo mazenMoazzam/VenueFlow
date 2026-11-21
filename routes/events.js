@@ -1,5 +1,12 @@
 const express = require("express");
-const { createEvent, listEventsForUser } = require("../db");
+const {
+  createEvent,
+  listEventsForUser,
+  isEventOwner,
+  findEventForUser,
+  updateEventForUser,
+  deleteEventForUser
+} = require("../db");
 const {
   isMissing,
   isBlank,
@@ -65,6 +72,76 @@ router.post("/", async (req, res, next) => {
   try {
     const event = await createEvent({ ...input, ownerUserId: req.user.id });
     res.status(201).json(event);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/:id", async (req, res, next) => {
+  if (!isPositiveInteger(req.params.id)) {
+    return res.status(404).json({ errors: ["Event not found"] });
+  }
+
+  try {
+    if (!(await isEventOwner(req.params.id, req.user.id))) {
+      return res.status(404).json({ errors: ["Event not found"] });
+    }
+
+    const event = await findEventForUser(req.params.id, req.user.id);
+    if (!event) {
+      return res.status(404).json({ errors: ["Event not found"] });
+    }
+
+    res.json(event);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch("/:id", async (req, res, next) => {
+  if (!isPositiveInteger(req.params.id)) {
+    return res.status(404).json({ errors: ["Event not found"] });
+  }
+
+  const input = req.body || {};
+  const errors = validateEventInput(input);
+
+  if (errors.length > 0) {
+    return res.status(400).json({ errors });
+  }
+
+  try {
+    if (!(await isEventOwner(req.params.id, req.user.id))) {
+      return res.status(404).json({ errors: ["Event not found"] });
+    }
+
+    const event = await updateEventForUser(req.params.id, req.user.id, input);
+    if (!event) {
+      return res.status(404).json({ errors: ["Event not found"] });
+    }
+
+    res.json(event);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.delete("/:id", async (req, res, next) => {
+  if (!isPositiveInteger(req.params.id)) {
+    return res.status(404).json({ errors: ["Event not found"] });
+  }
+
+  try {
+    if (!(await isEventOwner(req.params.id, req.user.id))) {
+      return res.status(404).json({ errors: ["Event not found"] });
+    }
+
+    const deleted = await deleteEventForUser(req.params.id, req.user.id);
+    if (!deleted) {
+      return res.status(404).json({ errors: ["Event not found"] });
+    }
+
+    res.sendStatus(204);
   } catch (error) {
     next(error);
   }
