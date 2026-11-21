@@ -39,8 +39,8 @@ dropTarget.addEventListener('drop', (e) => {
 
   let shape;
   switch (shapeType) {
-    case 'rectangle':
-      shape = createRectangle(x, y);
+    case 'polygon':
+      shape = createPolygon(x, y, 4);
       break;
     case 'circle':
       shape = createCircle(x, y);
@@ -84,7 +84,7 @@ canvas.on('object:scaling', (e) => {
   const minSize = 20;
   let clamped = false;
 
-  if (target.type === 'rect') {
+  if (target.type === 'polygon') {
     if (target.width * target.scaleX < minSize) {
       target.scaleX = minSize / target.width;
       clamped = true;
@@ -93,11 +93,11 @@ canvas.on('object:scaling', (e) => {
       target.scaleY = minSize / target.height;
       clamped = true;
     }
-    if (target._baseRadius === undefined) {
-      target._baseRadius = (target.rx || 0) * (target.scaleX || 1);
+    if (['ml', 'mr', 'mt', 'mb'].includes(e.transform?.corner)) {
+      target.ratioLocked = false;
+      target.lockUniScaling = false;
+      if (propRatioLock) propRatioLock.checked = false;
     }
-    target.rx = target._baseRadius / target.scaleX;
-    target.ry = target._baseRadius / target.scaleY;
   } else if (target.type === 'ellipse') {
     if (target.rx * target.scaleX < minSize / 2) {
       target.scaleX = (minSize / 2) / target.rx;
@@ -123,32 +123,30 @@ canvas.on('object:scaling', (e) => {
 canvas.on('before:transform', (e) => {
   const target = e.transform?.target;
   if (target) {
-    if (target.type === 'rect') {
-      target._baseRadius = (target.rx || 0) * (target.scaleX || 1);
-    } else if (target.type === 'ellipse') {
-      if (['ml', 'mr', 'mt', 'mb'].includes(e.transform.corner)) {
-        target.ratioLocked = false;
-        target.lockUniScaling = false;
-        if (propRatioLock) propRatioLock.checked = false;
-      } else if (target.ratioLocked !== false) {
-        target.lockUniScaling = true;
-      }
+    if (['ml', 'mr', 'mt', 'mb'].includes(e.transform.corner)) {
+      target.ratioLocked = false;
+      target.lockUniScaling = false;
+      if (propRatioLock) propRatioLock.checked = false;
+    } else if (target.ratioLocked !== false) {
+      target.lockUniScaling = true;
     }
   }
 });
 
 canvas.on('object:modified', (e) => {
   const target = e.target;
-  if (target.type === 'rect') {
-    const r = target._baseRadius !== undefined ? target._baseRadius : Math.round((target.rx || 0) * target.scaleX);
-    delete target._baseRadius;
+  if (target.type === 'polygon') {
+    const sides = target.sides || 4;
+    const newW = Math.round(target.width * target.scaleX);
+    const newH = Math.round(target.height * target.scaleY);
+    const pts = getRegularPolygonPoints(sides, newW, newH);
     target.set({
-      width: Math.round(target.width * target.scaleX),
-      height: Math.round(target.height * target.scaleY),
+      points: pts,
+      width: newW,
+      height: newH,
       scaleX: 1,
       scaleY: 1,
-      rx: r,
-      ry: r
+      pathOffset: { x: 0, y: 0 }
     });
   } else if (target.type === 'ellipse') {
     target.set({
@@ -173,25 +171,25 @@ const propName = document.getElementById('prop-name');
 const propPreview = document.getElementById('prop-preview');
 const propWidth = document.getElementById('prop-width');
 const propLength = document.getElementById('prop-length');
-const propRadius = document.getElementById('prop-radius');
-const radiusGroup = document.getElementById('prop-radius-group');
+const propSides = document.getElementById('prop-sides');
+const sidesGroup = document.getElementById('prop-sides-group');
 const propRatioLock = document.getElementById('prop-ratio-lock');
 const ratioGroup = document.getElementById('prop-ratio-group');
 
 function updatePreview(active) {
   if (!propPreview || !active) return;
   const maxW = 24, maxH = 16;
-  if (active.type === 'rect') {
+  if (active.type === 'polygon') {
     const w = active.width * active.scaleX;
     const h = active.height * active.scaleY;
-    const r = (active.rx || 0) * active.scaleX;
     const scale = Math.min((maxW - 2) / w, (maxH - 2) / h);
-    const pw = Math.max(4, Math.round(w * scale));
-    const ph = Math.max(4, Math.round(h * scale));
-    const pr = Math.min(Math.round(r * scale), pw / 2, ph / 2);
-    const x = ((maxW - pw) / 2) + 0.5;
-    const y = ((maxH - ph) / 2) + 0.5;
-    propPreview.innerHTML = `<svg width="${maxW}" height="${maxH}" viewBox="0 0 ${maxW} ${maxH}" fill="none"><rect x="${x}" y="${y}" width="${pw - 1}" height="${ph - 1}" rx="${pr}" fill="#f8fafc" stroke="#475569" stroke-width="1.2"/></svg>`;
+    const pw = Math.max(6, Math.round(w * scale));
+    const ph = Math.max(6, Math.round(h * scale));
+    const pts = getRegularPolygonPoints(active.sides || 4, pw, ph);
+    const cx = maxW / 2;
+    const cy = maxH / 2;
+    const svgPts = pts.map(p => `${(cx + p.x).toFixed(1)},${(cy + p.y).toFixed(1)}`).join(' ');
+    propPreview.innerHTML = `<svg width="${maxW}" height="${maxH}" viewBox="0 0 ${maxW} ${maxH}" fill="none"><polygon points="${svgPts}" fill="#f8fafc" stroke="#475569" stroke-width="1.2"/></svg>`;
   } else if (active.type === 'ellipse') {
     const w = active.rx * 2 * active.scaleX;
     const h = active.ry * 2 * active.scaleY;
@@ -203,9 +201,47 @@ function updatePreview(active) {
 }
 
 function setShapeDimension(active, isWidth, val) {
-  if (active.type === 'rect') {
-    active.set(isWidth ? 'width' : 'height', val);
-    active.set(isWidth ? 'scaleX' : 'scaleY', 1);
+  if (active.type === 'polygon') {
+    if (active.ratioLocked !== false) {
+      const currentW = active.width * active.scaleX;
+      const currentH = active.height * active.scaleY;
+      const ratio = currentW > 0 ? (currentH / currentW) : 1;
+      let wVal = isWidth ? val : (ratio > 0 ? val / ratio : val);
+      let hVal = isWidth ? val * ratio : val;
+      if (wVal > canvas.width) {
+        wVal = canvas.width;
+        hVal = wVal * ratio;
+      }
+      if (hVal > canvas.height) {
+        hVal = canvas.height;
+        wVal = ratio > 0 ? hVal / ratio : hVal;
+      }
+      wVal = Math.max(20, Math.round(wVal));
+      hVal = Math.max(20, Math.round(hVal));
+      const pts = getRegularPolygonPoints(active.sides || 4, wVal, hVal);
+      active.set({
+        points: pts,
+        width: wVal,
+        height: hVal,
+        scaleX: 1,
+        scaleY: 1,
+        pathOffset: { x: 0, y: 0 }
+      });
+      if (document.activeElement !== propWidth) propWidth.value = wVal;
+      if (document.activeElement !== propLength) propLength.value = hVal;
+    } else {
+      const wVal = isWidth ? val : Math.round(active.width * active.scaleX);
+      const hVal = isWidth ? Math.round(active.height * active.scaleY) : val;
+      const pts = getRegularPolygonPoints(active.sides || 4, wVal, hVal);
+      active.set({
+        points: pts,
+        width: wVal,
+        height: hVal,
+        scaleX: 1,
+        scaleY: 1,
+        pathOffset: { x: 0, y: 0 }
+      });
+    }
   } else if (active.type === 'ellipse') {
     if (active.ratioLocked !== false) {
       const currentW = active.rx * 2 * active.scaleX;
@@ -242,9 +278,22 @@ function setShapeDimension(active, isWidth, val) {
   updatePreview(active);
 }
 
-function setShapeRadius(active, val) {
-  delete active._baseRadius;
-  active.set({ rx: val / active.scaleX, ry: val / active.scaleY });
+function setPolygonSides(active, val) {
+  if (active.type !== 'polygon') return;
+  active.sides = val;
+  const w = Math.round(active.width * active.scaleX);
+  const h = Math.round(active.height * active.scaleY);
+  const pts = getRegularPolygonPoints(val, w, h);
+  active.set({
+    points: pts,
+    width: w,
+    height: h,
+    scaleX: 1,
+    scaleY: 1,
+    pathOffset: { x: 0, y: 0 }
+  });
+  active.setCoords();
+  clampToBounds(active);
   canvas.requestRenderAll();
   updatePreview(active);
 }
@@ -280,18 +329,15 @@ function bindNumericInput(input, getBounds, onApply) {
 bindNumericInput(propWidth, () => ({ min: 20, max: canvas.width }), (active, val) => setShapeDimension(active, true, val));
 bindNumericInput(propLength, () => ({ min: 20, max: canvas.height }), (active, val) => setShapeDimension(active, false, val));
 bindNumericInput(
-  propRadius,
-  (active) => ({
-    min: 0,
-    max: Math.floor(Math.min(active.width * active.scaleX, active.height * active.scaleY) / 2)
-  }),
-  (active, val) => setShapeRadius(active, val)
+  propSides,
+  () => ({ min: 3, max: 20 }),
+  (active, val) => setPolygonSides(active, Math.round(val))
 );
 
 if (propRatioLock) {
   propRatioLock.addEventListener('change', () => {
     const active = canvas.getActiveObject();
-    if (!active || active.type !== 'ellipse') return;
+    if (!active) return;
     active.ratioLocked = propRatioLock.checked;
     active.lockUniScaling = propRatioLock.checked;
   });
@@ -306,23 +352,27 @@ function updatePropertiesPanel() {
   selProp.style.display = isSingle ? 'flex' : 'none';
   if (!isSingle) return;
 
-  const isRect = active.type === 'rect';
-  propName.value = isRect ? 'Rectangle' : 'Circle';
+  const isPolygon = active.type === 'polygon';
+  const isCircle = active.type === 'ellipse';
 
-  const w = Math.round((isRect ? active.width : active.rx * 2) * active.scaleX);
-  const h = Math.round((isRect ? active.height : active.ry * 2) * active.scaleY);
+  propName.value = isPolygon ? 'Polygon' : 'Circle';
+
+  const w = Math.round((isCircle ? active.rx * 2 : active.width) * active.scaleX);
+  const h = Math.round((isCircle ? active.ry * 2 : active.height) * active.scaleY);
   if (document.activeElement !== propWidth) propWidth.value = w;
   if (document.activeElement !== propLength) propLength.value = h;
 
-  if (radiusGroup) radiusGroup.style.display = isRect ? 'flex' : 'none';
-  if (ratioGroup) ratioGroup.style.display = isRect ? 'none' : 'flex';
+  if (sidesGroup) sidesGroup.style.display = isPolygon ? 'flex' : 'none';
+  if (ratioGroup) ratioGroup.style.display = 'flex';
 
-  if (isRect && propRadius) {
-    propRadius.max = Math.floor(Math.min(w, h) / 2);
-    if (document.activeElement !== propRadius) {
-      propRadius.value = Math.round((active.rx || 0) * active.scaleX);
+  if (isPolygon && propSides) {
+    if (active.sides === undefined) active.sides = 4;
+    if (document.activeElement !== propSides) {
+      propSides.value = active.sides;
     }
-  } else if (!isRect && propRatioLock) {
+  }
+
+  if (propRatioLock) {
     if (active.ratioLocked === undefined) {
       active.ratioLocked = true;
       active.lockUniScaling = true;
@@ -333,20 +383,54 @@ function updatePropertiesPanel() {
   updatePreview(active);
 }
 
-function createRectangle(x, y) {
-  return new fabric.Rect({
+function getRegularPolygonPoints(sides, width, height) {
+  const points = [];
+  const angleStep = (2 * Math.PI) / sides;
+  const startAngle = (sides % 2 === 0) ? (-Math.PI / 2 + Math.PI / sides) : (-Math.PI / 2);
+  const raw = [];
+  let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
+  for (let i = 0; i < sides; i++) {
+    const angle = startAngle + i * angleStep;
+    const u = Math.cos(angle);
+    const v = Math.sin(angle);
+    if (u < minU) minU = u;
+    if (u > maxU) maxU = u;
+    if (v < minV) minV = v;
+    if (v > maxV) maxV = v;
+    raw.push({ u, v });
+  }
+  const spanU = maxU - minU || 1;
+  const spanV = maxV - minV || 1;
+  const midU = (maxU + minU) / 2;
+  const midV = (maxV + minV) / 2;
+  for (let i = 0; i < sides; i++) {
+    points.push({
+      x: ((raw[i].u - midU) / spanU) * width,
+      y: ((raw[i].v - midV) / spanV) * height
+    });
+  }
+  return points;
+}
+
+function createPolygon(x, y, sides = 4) {
+  const w = 70;
+  const h = 70;
+  const pts = getRegularPolygonPoints(sides, w, h);
+  return new fabric.Polygon(pts, {
     left: x,
     top: y,
-    width: 80,
-    height: 50,
+    width: w,
+    height: h,
     fill: '#ffffff',
     stroke: '#24222d',
     strokeWidth: 1.5,
-    rx: 4,
-    ry: 4,
     originX: 'center',
     originY: 'center',
-    objectCaching: false
+    objectCaching: false,
+    ratioLocked: true,
+    lockUniScaling: true,
+    sides: sides,
+    pathOffset: { x: 0, y: 0 }
   });
 }
 
@@ -456,22 +540,6 @@ function getShapeBounds(target) {
     const b = target.ry * target.scaleY + strokeOffset;
     const ax = Math.sqrt((a * cos) ** 2 + (b * sin) ** 2);
     const ay = Math.sqrt((a * sin) ** 2 + (b * cos) ** 2);
-    return {
-      left: center.x - ax,
-      top: center.y - ay,
-      width: ax * 2,
-      height: ay * 2
-    };
-  }
-
-  if (target.type === 'rect') {
-    const w = target.width * target.scaleX;
-    const h = target.height * target.scaleY;
-    const r = Math.min((target.rx || 0) * target.scaleX, w / 2, h / 2);
-    const w_inner = Math.max(0, w - 2 * r);
-    const h_inner = Math.max(0, h - 2 * r);
-    const ax = (w_inner / 2) * Math.abs(cos) + (h_inner / 2) * Math.abs(sin) + r + strokeOffset;
-    const ay = (w_inner / 2) * Math.abs(sin) + (h_inner / 2) * Math.abs(cos) + r + strokeOffset;
     return {
       left: center.x - ax,
       top: center.y - ay,

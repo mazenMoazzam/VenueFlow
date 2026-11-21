@@ -23,13 +23,13 @@
       <aside class="panel sidebar">
         <h2 class="panel-title">Shapes</h2>
         <div class="palette-grid">
-          <div class="palette-card" draggable="true" data-type="rectangle">
+          <div class="palette-card" draggable="true" data-type="polygon">
             <div class="card-preview">
-              <svg width="34" height="24" viewBox="0 0 34 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="2" y="3" width="30" height="18" rx="3" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+              <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="4" y="4" width="20" height="20" rx="2" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
               </svg>
             </div>
-            <span class="card-name">Rectangle</span>
+            <span class="card-name">Polygon</span>
           </div>
           <div class="palette-card" draggable="true" data-type="circle">
             <div class="card-preview">
@@ -86,10 +86,10 @@
             </div>
           </div>
 
-          <div id="prop-radius-group" class="property-group">
-            <label class="property-label">Corner radius</label>
+          <div id="prop-sides-group" class="property-group" style="display: none;">
+            <label class="property-label">Sides</label>
             <div class="input-with-unit">
-              <input id="prop-radius" type="number" min="0" class="dimension-input">
+              <input id="prop-sides" type="number" min="3" max="20" value="4" class="dimension-input">
             </div>
           </div>
         </div>
