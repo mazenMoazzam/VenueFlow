@@ -93,8 +93,11 @@ canvas.on('object:scaling', (e) => {
       target.scaleY = minSize / target.height;
       clamped = true;
     }
-    target.rx = 4 / target.scaleX;
-    target.ry = 4 / target.scaleY;
+    if (target._baseRadius === undefined) {
+      target._baseRadius = (target.rx || 0) * (target.scaleX || 1);
+    }
+    target.rx = target._baseRadius / target.scaleX;
+    target.ry = target._baseRadius / target.scaleY;
   } else if (target.type === 'ellipse') {
     if (target.rx * target.scaleX < minSize / 2) {
       target.scaleX = (minSize / 2) / target.rx;
@@ -104,6 +107,11 @@ canvas.on('object:scaling', (e) => {
       target.scaleY = (minSize / 2) / target.ry;
       clamped = true;
     }
+    if (['ml', 'mr', 'mt', 'mb'].includes(e.transform?.corner)) {
+      target.ratioLocked = false;
+      target.lockUniScaling = false;
+      if (propRatioLock) propRatioLock.checked = false;
+    }
   }
 
   if (clamped) {
@@ -112,16 +120,35 @@ canvas.on('object:scaling', (e) => {
   updatePropertiesPanel();
 });
 
+canvas.on('before:transform', (e) => {
+  const target = e.transform?.target;
+  if (target) {
+    if (target.type === 'rect') {
+      target._baseRadius = (target.rx || 0) * (target.scaleX || 1);
+    } else if (target.type === 'ellipse') {
+      if (['ml', 'mr', 'mt', 'mb'].includes(e.transform.corner)) {
+        target.ratioLocked = false;
+        target.lockUniScaling = false;
+        if (propRatioLock) propRatioLock.checked = false;
+      } else if (target.ratioLocked !== false) {
+        target.lockUniScaling = true;
+      }
+    }
+  }
+});
+
 canvas.on('object:modified', (e) => {
   const target = e.target;
   if (target.type === 'rect') {
+    const r = target._baseRadius !== undefined ? target._baseRadius : Math.round((target.rx || 0) * target.scaleX);
+    delete target._baseRadius;
     target.set({
       width: Math.round(target.width * target.scaleX),
       height: Math.round(target.height * target.scaleY),
       scaleX: 1,
       scaleY: 1,
-      rx: 4,
-      ry: 4
+      rx: r,
+      ry: r
     });
   } else if (target.type === 'ellipse') {
     target.set({
@@ -148,18 +175,78 @@ const propWidth = document.getElementById('prop-width');
 const propLength = document.getElementById('prop-length');
 const propRadius = document.getElementById('prop-radius');
 const radiusGroup = document.getElementById('prop-radius-group');
+const propRatioLock = document.getElementById('prop-ratio-lock');
+const ratioGroup = document.getElementById('prop-ratio-group');
+
+function updatePreview(active) {
+  if (!propPreview || !active) return;
+  const maxW = 24, maxH = 16;
+  if (active.type === 'rect') {
+    const w = active.width * active.scaleX;
+    const h = active.height * active.scaleY;
+    const r = (active.rx || 0) * active.scaleX;
+    const scale = Math.min((maxW - 2) / w, (maxH - 2) / h);
+    const pw = Math.max(4, Math.round(w * scale));
+    const ph = Math.max(4, Math.round(h * scale));
+    const pr = Math.min(Math.round(r * scale), pw / 2, ph / 2);
+    const x = ((maxW - pw) / 2) + 0.5;
+    const y = ((maxH - ph) / 2) + 0.5;
+    propPreview.innerHTML = `<svg width="${maxW}" height="${maxH}" viewBox="0 0 ${maxW} ${maxH}" fill="none"><rect x="${x}" y="${y}" width="${pw - 1}" height="${ph - 1}" rx="${pr}" fill="#f8fafc" stroke="#475569" stroke-width="1.2"/></svg>`;
+  } else if (active.type === 'ellipse') {
+    const w = active.rx * 2 * active.scaleX;
+    const h = active.ry * 2 * active.scaleY;
+    const scale = Math.min((maxW - 2) / w, (maxH - 2) / h);
+    const prx = Math.max(2, (w * scale - 1) / 2);
+    const pry = Math.max(2, (h * scale - 1) / 2);
+    propPreview.innerHTML = `<svg width="${maxW}" height="${maxH}" viewBox="0 0 ${maxW} ${maxH}" fill="none"><ellipse cx="${maxW / 2}" cy="${maxH / 2}" rx="${prx}" ry="${pry}" fill="#f8fafc" stroke="#475569" stroke-width="1.2"/></svg>`;
+  }
+}
 
 function setShapeDimension(active, isWidth, val) {
   if (active.type === 'rect') {
     active.set(isWidth ? 'width' : 'height', val);
     active.set(isWidth ? 'scaleX' : 'scaleY', 1);
   } else if (active.type === 'ellipse') {
-    active.set(isWidth ? 'rx' : 'ry', val / 2);
-    active.set(isWidth ? 'scaleX' : 'scaleY', 1);
+    if (active.ratioLocked !== false) {
+      const currentW = active.rx * 2 * active.scaleX;
+      const currentH = active.ry * 2 * active.scaleY;
+      const ratio = currentW > 0 ? (currentH / currentW) : 1;
+      let wVal = isWidth ? val : (ratio > 0 ? val / ratio : val);
+      let hVal = isWidth ? val * ratio : val;
+      if (wVal > canvas.width) {
+        wVal = canvas.width;
+        hVal = wVal * ratio;
+      }
+      if (hVal > canvas.height) {
+        hVal = canvas.height;
+        wVal = ratio > 0 ? hVal / ratio : hVal;
+      }
+      wVal = Math.max(20, Math.round(wVal));
+      hVal = Math.max(20, Math.round(hVal));
+      active.set({
+        rx: wVal / 2,
+        ry: hVal / 2,
+        scaleX: 1,
+        scaleY: 1
+      });
+      if (document.activeElement !== propWidth) propWidth.value = wVal;
+      if (document.activeElement !== propLength) propLength.value = hVal;
+    } else {
+      active.set(isWidth ? 'rx' : 'ry', val / 2);
+      active.set(isWidth ? 'scaleX' : 'scaleY', 1);
+    }
   }
   active.setCoords();
   clampToBounds(active);
   canvas.requestRenderAll();
+  updatePreview(active);
+}
+
+function setShapeRadius(active, val) {
+  delete active._baseRadius;
+  active.set({ rx: val / active.scaleX, ry: val / active.scaleY });
+  canvas.requestRenderAll();
+  updatePreview(active);
 }
 
 function bindNumericInput(input, getBounds, onApply) {
@@ -198,11 +285,17 @@ bindNumericInput(
     min: 0,
     max: Math.floor(Math.min(active.width * active.scaleX, active.height * active.scaleY) / 2)
   }),
-  (active, val) => {
-    active.set({ rx: val / active.scaleX, ry: val / active.scaleY });
-    canvas.requestRenderAll();
-  }
+  (active, val) => setShapeRadius(active, val)
 );
+
+if (propRatioLock) {
+  propRatioLock.addEventListener('change', () => {
+    const active = canvas.getActiveObject();
+    if (!active || active.type !== 'ellipse') return;
+    active.ratioLocked = propRatioLock.checked;
+    active.lockUniScaling = propRatioLock.checked;
+  });
+}
 
 function updatePropertiesPanel() {
   const active = canvas.getActiveObject();
@@ -215,9 +308,6 @@ function updatePropertiesPanel() {
 
   const isRect = active.type === 'rect';
   propName.value = isRect ? 'Rectangle' : 'Circle';
-  propPreview.innerHTML = isRect
-    ? '<svg width="18" height="13" viewBox="0 0 18 13" fill="none"><rect x="1" y="1" width="16" height="11" rx="2" fill="#f8fafc" stroke="#475569" stroke-width="1.2"/></svg>'
-    : '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" fill="#f8fafc" stroke="#475569" stroke-width="1.2"/></svg>';
 
   const w = Math.round((isRect ? active.width : active.rx * 2) * active.scaleX);
   const h = Math.round((isRect ? active.height : active.ry * 2) * active.scaleY);
@@ -225,12 +315,22 @@ function updatePropertiesPanel() {
   if (document.activeElement !== propLength) propLength.value = h;
 
   if (radiusGroup) radiusGroup.style.display = isRect ? 'flex' : 'none';
+  if (ratioGroup) ratioGroup.style.display = isRect ? 'none' : 'flex';
+
   if (isRect && propRadius) {
     propRadius.max = Math.floor(Math.min(w, h) / 2);
     if (document.activeElement !== propRadius) {
       propRadius.value = Math.round((active.rx || 0) * active.scaleX);
     }
+  } else if (!isRect && propRatioLock) {
+    if (active.ratioLocked === undefined) {
+      active.ratioLocked = true;
+      active.lockUniScaling = true;
+    }
+    propRatioLock.checked = active.ratioLocked !== false;
   }
+
+  updatePreview(active);
 }
 
 function createRectangle(x, y) {
@@ -261,7 +361,9 @@ function createCircle(x, y) {
     strokeWidth: 1.5,
     originX: 'center',
     originY: 'center',
-    objectCaching: false
+    objectCaching: false,
+    ratioLocked: true,
+    lockUniScaling: true
   });
 }
 
@@ -312,6 +414,10 @@ function createRotationControl() {
         this.offsetX = bestCandidate.offsetX;
         this.offsetY = bestCandidate.offsetY;
       }
+      this.edge = fabric.util.transformPoint({
+        x: this.x * dim.x,
+        y: this.y * dim.y
+      }, finalMatrix);
       return fabric.util.transformPoint({
         x: this.x * dim.x + this.offsetX,
         y: this.y * dim.y + this.offsetY
@@ -319,12 +425,10 @@ function createRotationControl() {
     },
     render: function(ctx, left, top, styleOverride, fabricObject) {
       styleOverride = styleOverride || {};
-      const dim = fabricObject._calculateCurrentDimensions();
-      const matrix = fabricObject.calcTransformMatrix();
-      const edge = fabric.util.transformPoint({
-        x: this.x * dim.x,
-        y: this.y * dim.y
-      }, matrix);
+      const edge = this.edge || fabricObject.getPointByOrigin(
+        this.x === 0 ? 'center' : (this.x > 0 ? 'right' : 'left'),
+        this.y === 0 ? 'center' : (this.y > 0 ? 'bottom' : 'top')
+      );
 
       ctx.save();
       ctx.strokeStyle = styleOverride.borderColor || fabricObject.borderColor;
