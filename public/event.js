@@ -47,7 +47,7 @@ function setupEditForm(event) {
     form.elements.name.value = event.name || "";
     form.elements.description.value = event.description || "";
     form.elements.location.value = event.location || "";
-    form.elements.expected_attendance.value = event.expected_attendance;
+    form.elements.expected_attendees.value = event.expected_attendees;
 
     form.hidden = false;
     editButton.setAttribute("aria-expanded", "true");
@@ -83,10 +83,10 @@ async function loadEvent() {
     let event = await response.json();
     showField("event-name", event.name);
     showField("event-description", event.description || "No description provided.");
-    showField("event-start", event.start_time);
-    showField("event-end", event.end_time);
+    showField("event-start", event.starts_at);
+    showField("event-end", event.ends_at);
     showField("event-location", event.location || null);
-    showField("event-attendance", event.expected_attendance);
+    showField("event-attendance", event.expected_attendees);
     showField("event-status", event.status);
     document.title = event.name + " | VenueFlow";
 
