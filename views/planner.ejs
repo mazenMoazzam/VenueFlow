@@ -12,6 +12,13 @@
   <body>
     <header class="topbar">
       <span class="brand"><span class="brand-mark">✳</span> Venueflow</span>
+
+      <div class="topbar-user">
+        <span class="topbar-user-name"><%= user.display_name %></span>
+        <form method="POST" action="/logout">
+          <button class="button-secondary" type="submit">Log out</button>
+        </form>
+      </div>
     </header>
 
     <main class="page">
@@ -26,9 +33,7 @@
           <button class="new-event-link" id="open-create-event" type="button">+ New event</button>
         </aside>
 
-        <section class="panel" id="calendar-panel">
-          
-        </section>
+        <section class="panel" id="calendar-panel"></section>
 
         <aside class="panel" id="tasks-panel">
           <h2 class="panel-title">Tasks</h2>

@@ -1,4 +1,3 @@
-// empty placeholder route for now
 const express = require("express");
 
 const router = express.Router();

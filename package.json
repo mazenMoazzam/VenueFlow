@@ -7,11 +7,15 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "check": "node --check server.js && node --check routes/empty.js && node --check db/index.js"
+    "check": "node --check server.js && node --check routes/empty.js && node --check routes/auth.js && node --check middleware/auth.js && node --check db/index.js"
   },
   "dependencies": {
+    "bcrypt": "^6.0.0",
+    "connect-pg-simple": "^10.0.0",
     "dotenv": "^18.0.10",
+    "ejs": "^7.0.2",
     "express": "^4.21.2",
+    "express-session": "^1.19.0",
     "pg": "^8.23.1"
   }
 }
