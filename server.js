@@ -3,6 +3,9 @@ const path = require("path");
 const session = require("express-session");
 const PgSession = require("connect-pg-simple")(session);
 const emptyRouter = require("./routes/empty");
+const eventsRouter = require("./routes/events");
+const tasksRouter = require("./routes/tasks");
+const attachDemoUser = require("./middleware/demoUser");
 const authRouter = require("./routes/auth");
 const { requireAuth } = require("./middleware/auth");
 const { pool, initializeDatabase } = require("./db");
@@ -46,6 +49,8 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.use("/api/empty", emptyRouter);
+app.use("/api/events", attachDemoUser, eventsRouter);
+app.use("/api/tasks", attachDemoUser, tasksRouter);
 app.use("/", authRouter);
 
 app.get("/", requireAuth, (_req, res) => {

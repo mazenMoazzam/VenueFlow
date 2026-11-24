@@ -76,6 +76,14 @@ body {
   color: var(--color-muted);
 }
 
+.new-event-link {
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--color-accent);
+  font-weight: 500;
+  text-decoration: none;
+}
+
 /* Calendar */
 
 #calendar-panel {
@@ -289,4 +297,38 @@ body {
 
 .button-secondary:hover {
   background: var(--color-bg);
+}
+
+/* Event details */
+
+.event-page {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.event-back {
+  display: inline-block;
+  margin-bottom: 16px;
+  color: var(--color-accent);
+}
+
+.event-description {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.event-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 16px;
+  margin: 24px 0 0;
+}
+
+.event-fields dt {
+  font-weight: 600;
+}
+
+.event-fields dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
 }
